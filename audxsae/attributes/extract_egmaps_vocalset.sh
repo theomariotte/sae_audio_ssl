@@ -1,6 +1,7 @@
 #!/bin/bash
 
 SPLIT=$1 # split on which to extract features
+LIST=$2
 
 path=/lium/home/tmario/opensmile-3.0.2-linux-x86_64
 cmd=${path}/bin/SMILExtract
@@ -10,18 +11,56 @@ feature_path=${DATA_ROOT}/VocalSet/features/${SPLIT}
 # Create features directory if it doesn't exist
 mkdir -p ${feature_path}
 
-# Find all .wav files in the dataset structure recursively
-find ${wavpath} -name "*.wav" -type f | while read -r f; do
-    # Get the basename without extension
-    bname=$(basename "$f" .wav)
-    
-    # Get the relative path from wavpath and replace / with _ for feature filename
-    # This creates unique filenames that preserve the directory structure
-    rel_path=$(realpath --relative-to="$wavpath" "$f")
+# Read wav file list from test_list.txt
+while read -r rel_path; do
+    # Skip empty lines or comments
+    [[ -z "$rel_path" || "$rel_path" =~ ^# ]] && continue
+
+    f="${wavpath}/${rel_path}"
+
+    if [[ ! -f "$f" ]]; then
+        echo "Warning: File not found -> $f"
+        continue
+    fi
+
+    # Generate unique feature filename
     feature_name=$(echo "$rel_path" | sed 's/\//_/g' | sed 's/\.wav$//')
-    
+
     echo "Processing: $f -> ${feature_path}/${feature_name}.csv"
-    
+
     # Extract features
     $cmd -C ${path}/config/egemaps/v02/eGeMAPSv02.conf -I "$f" -O "${feature_path}/${feature_name}.csv"
-done
+
+done < ${DATA_ROOT}/VocalSet/${LIST}
+
+
+# #!/bin/bash
+
+# SPLIT=$1 # split on which to extract features
+# LIST=$2
+# path=/lium/home/tmario/opensmile-3.0.2-linux-x86_64
+# cmd=${path}/bin/SMILExtract
+# feature_path=${DATA_ROOT}/VocalSet/features/v2/${SPLIT}
+
+# # Create features directory if it doesn't exist
+# mkdir -p ${feature_path}
+
+# # Read wav file list from test_list.txt
+# while read -r f; do
+#     # Skip empty lines or comments
+#     [[ -z "$f" || "$f" =~ ^# ]] && continue
+
+#     if [[ ! -f "$f" ]]; then
+#         echo "Warning: File not found -> $f"
+#         continue
+#     fi
+
+#     # Generate unique feature filename from absolute path
+#     feature_name=$(echo "$f" | sed 's/\//_/g' | sed 's/\.wav$//')
+
+#     echo "Processing: $f -> ${feature_path}/${feature_name}.csv"
+
+#     # Extract features
+#     $cmd -C ${path}/config/egemaps/v02/eGeMAPSv02.conf -I "$f" -O "${feature_path}/${feature_name}.csv"
+
+# done < ${DATA_ROOT}/VocalSet/${LIST}

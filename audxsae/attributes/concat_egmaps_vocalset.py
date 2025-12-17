@@ -104,68 +104,217 @@ header = [
     "vowel"
 ]
 
+def parse_filename(filename):
+    """
+    Parse VocalSet OpenSmile feature filenames.
+    Adds 'raw_name' = canonical audio file ID (short version if available, otherwise full filename).
+    """
+    name_without_ext = filename[:-4]
+    parts = name_without_ext.split('_')
+
+    singer_abbreviations = ['m3', 'm5', 'm10', 'f2', 'f8']
+
+    audio_start_idx = None
+    for i, part in enumerate(parts):
+        if part in singer_abbreviations:
+            audio_start_idx = i
+            break
+
+    if audio_start_idx is not None:
+        prefix_parts = parts[:audio_start_idx]
+        audio_parts = parts[audio_start_idx:]
+
+        full_singer = prefix_parts[0]
+        exercise = prefix_parts[1]
+        if exercise == "long":
+            exercise = "long_tones"
+
+        technique_parts = prefix_parts[2:]
+        technique = "_".join(technique_parts) if technique_parts else "unknown"
+
+        vowel = audio_parts[-1]
+        audio_filename = "_".join(audio_parts)
+
+        raw_name = audio_filename  # short version is cleanest
+
+    else:
+        full_singer = parts[0]
+        exercise = parts[1]
+        if exercise == "long":
+            exercise = "long_tones"
+
+        technique_parts = parts[2:-1]
+        technique = "_".join(technique_parts) if technique_parts else "unknown"
+
+        vowel = parts[-1]
+        audio_filename = "_".join(parts[1:])  # skip singer
+
+        raw_name = name_without_ext  # fallback to full filename
+
+    return {
+        "singer": full_singer,
+        "exercise_type": exercise,
+        "vocal_technique": technique,
+        "vowel": vowel,
+        "audio_filename": audio_filename,
+        "raw_name": raw_name,  # <-- new field
+    }
+
+
+# def parse_filename(filename):
+#     """
+#     Parse filename to extract singer, exercise, technique, and vowel.
+    
+#     Examples:
+#     - male3_scales_fast_piano_m3_scales_f_fast_piano_a.csv -> m3_scales_f_fast_piano_a
+#     - male3_scales_lip_trill_m3_scales_lip_trill_u.csv -> m3_scales_lip_trill_u
+    
+#     The pattern is: [prefix]_[audio_filename]
+#     Where audio_filename follows: singer_exercise_technique_vowel
+#     """
+#     # Remove .csv extension
+#     name_without_ext = filename[:-4]
+#     parts = name_without_ext.split('_')
+    
+#     if len(parts) < 4:
+#         return {
+#             'singer': 'unknown',
+#             'exercise_type': 'unknown',
+#             'vocal_technique': 'unknown',
+#             'vowel': 'unknown',
+#             'audio_filename': name_without_ext
+#         }
+    
+#     # Find the audio filename part by looking for singer abbreviations (m3, f2, etc.)
+#     audio_start_idx = None
+    
+#     # Look for abbreviated singer names (m3, m5, m10, f2, f8)
+#     singer_abbreviations = ['m3', 'm5', 'm10', 'f2', 'f8']
+    
+#     for i, part in enumerate(parts):
+#         if part in singer_abbreviations:
+#             # Check if this looks like the start of an audio filename
+#             remaining_parts = parts[i:]
+#             if len(remaining_parts) >= 4:  # Need at least singer_exercise_technique_vowel
+#                 audio_start_idx = i
+#                 break
+    
+#     if audio_start_idx is None:
+#         # Fallback: assume audio filename is in the last parts
+#         audio_start_idx = max(0, len(parts) - 5)
+    
+#     audio_parts = parts[audio_start_idx:]
+    
+#     if len(audio_parts) < 4:
+#         # Not enough parts, return what we can
+#         return {
+#             'singer': parts[0] if parts else 'unknown',
+#             'exercise_type': 'unknown',
+#             'vocal_technique': 'unknown', 
+#             'vowel': audio_parts[-1] if audio_parts else 'unknown',
+#             'audio_filename': '_'.join(audio_parts) if audio_parts else name_without_ext
+#         }
+    
+#     # Parse audio filename: singer_exercise_technique(s)_vowel
+#     audio_singer = audio_parts[0]  # e.g., m3, f2
+#     exercise = audio_parts[1]      # e.g., scales, arpeggios, long
+#     vowel = audio_parts[-1]        # Always the last part (a, e, i, o, u, etc.)
+    
+#     # Everything between exercise and vowel is the technique
+#     technique_parts = audio_parts[2:-1]
+    
+#     # Clean up the technique - remove any singer abbreviations or exercise types that got mixed in
+#     cleaned_technique_parts = []
+#     for part in technique_parts:
+#         if (part not in singer_abbreviations and 
+#             part not in ['scales', 'arpeggios', 'long', 'excerpts'] and
+#             part not in ['a', 'e', 'i', 'o', 'u']):  # Not a vowel either
+#             cleaned_technique_parts.append(part)
+    
+#     technique = '_'.join(cleaned_technique_parts) if cleaned_technique_parts else 'unknown'
+    
+#     # Handle special cases
+#     if exercise == 'long':
+#         exercise = 'long_tones'
+    
+#     # Map singer abbreviations to full names
+#     singer_mapping = {
+#         'm3': 'male3', 'm5': 'male5', 'm10': 'male10',
+#         'f2': 'female2', 'f8': 'female8'
+#     }
+#     full_singer = singer_mapping.get(audio_singer, audio_singer)
+    
+#     result = {
+#         'singer': full_singer,
+#         'exercise_type': exercise,
+#         'vocal_technique': technique,
+#         'vowel': vowel,
+#         'audio_filename': '_'.join(audio_parts)
+#     }
+    
+#     return result
+
 glob_df = []
+processing_errors = []
 wavpath = os.path.join(os.environ["DATA_ROOT"],"VocalSet/FULL",args.split)
 feat_path = os.path.join(os.environ["DATA_ROOT"],"VocalSet/features", args.split)
+
 for f in glob.glob(f"{feat_path}/*.csv"):
-    # Extract feature filename without path and extension
-    bname = f.split('/')[-1][:-4]
-    print(f"Processing: {bname}")
+    # Extract feature filename without path
+    filename = f.split('/')[-1]
+    bname = filename[:-4]  # Remove .csv extension
+    
+    print(f"Processing: {filename}")
+    
+    # Parse the filename to extract metadata
+    parsed = parse_filename(filename)
     
     # Read the CSV file (skip OpenSMILE header comments with @)
     try:
         data = pd.read_csv(f, engine='python', comment='@', names=header[1:-4])  # Exclude name and metadata columns
         data = data.drop_duplicates()
         
-        # Reconstruct original audio path by converting underscores back to slashes
-        audio_path = os.path.join(wavpath, bname.replace('_', '/') + '.wav')
-        
-        # Extract metadata from the path structure
-        path_parts = bname.split('_')
-        
-        # Parse the path structure: singer_exercise_technique_[key_]details_vowel
-        singer = path_parts[0]  # e.g., 'female6', 'female7'
-        exercise_type = path_parts[1]  # e.g., 'arpeggios', 'scales', 'long', 'excerpts'
-        
-        # Handle different path structures
-        if exercise_type == 'long':
-            exercise_type = 'long_tones'
-            vocal_technique = path_parts[2]
-            vowel = path_parts[-1] if len(path_parts) > 3 else 'unknown'
-        elif len(path_parts) >= 4:
-            # Handle cases like arpeggios_c_fast_forte or arpeggios_belt_1
-            if path_parts[2] in ['c', 'f']:  # Key indicators
-                vocal_technique = '_'.join(path_parts[2:-1])
-                vowel = path_parts[-1]
-            else:
-                vocal_technique = path_parts[2]
-                vowel = path_parts[-1]
-        else:
-            vocal_technique = 'unknown'
-            vowel = path_parts[-1] if len(path_parts) > 2 else 'unknown'
+        # Reconstruct original audio path
+        audio_path = os.path.join(wavpath, parsed['audio_filename'].replace('_', '/') + '.wav')
         
         # Add metadata columns
         data['name'] = bname
         data['audio_path'] = audio_path
-        data['singer'] = singer
-        data['exercise_type'] = exercise_type
-        data['vocal_technique'] = vocal_technique
-        data['vowel'] = vowel
+        data['singer'] = parsed['singer']
+        data['exercise_type'] = parsed['exercise_type']
+        data['vocal_technique'] = parsed['vocal_technique']
+        data['vowel'] = parsed['vowel']
+        data['audio_id'] = parsed['raw_name']
         
         glob_df.append(data)
+        print(f"  SUCCESS: Added {len(data)} rows - Singer: {parsed['singer']}, Exercise: {parsed['exercise_type']}, Technique: {parsed['vocal_technique']}, Vowel: {parsed['vowel']}")
         
     except Exception as e:
-        print(f"Error processing {f}: {e}")
+        print(f"  ERROR processing {filename}: {e}")
+        processing_errors.append((filename, str(e)))
         continue
+
+# Print summary
+print(f"\n=== PROCESSING SUMMARY ===")
+print(f"Files processed successfully: {len(glob_df)}")
+print(f"Files with errors: {len(processing_errors)}")
+
+if processing_errors:
+    print(f"\nFiles with processing errors:")
+    for filename, error in processing_errors[:10]:  # Show first 10
+        print(f"  - {filename}: {error}")
+    if len(processing_errors) > 10:
+        print(f"  ... and {len(processing_errors) - 10} more")
 
 # Concatenate all dataframes
 if glob_df:
     glob_df = pd.concat(glob_df, ignore_index=True)
-    print(f"\nTotal samples: {len(glob_df)}")
-    print(f"Singers: {glob_df['singer'].unique()}")
-    print(f"Exercise types: {glob_df['exercise_type'].unique()}")
-    print(f"Vocal techniques: {glob_df['vocal_technique'].unique()}")
-    print(f"Vowels: {glob_df['vowel'].unique()}")
+    print(f"\nFinal dataset:")
+    print(f"Total samples: {len(glob_df)}")
+    print(f"Singers: {sorted(glob_df['singer'].unique())}")
+    print(f"Exercise types: {sorted(glob_df['exercise_type'].unique())}")
+    print(f"Vocal techniques: {sorted(glob_df['vocal_technique'].unique())}")
+    print(f"Vowels: {sorted(glob_df['vowel'].unique())}")
     
     # Save to CSV
     output_path = os.path.join(os.environ["DATA_ROOT"],"VocalSet/features/concat",args.split)

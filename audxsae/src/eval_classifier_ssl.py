@@ -1,5 +1,5 @@
-from audIBle.nn.pretrained_models import AudioClassifier
-from audIBle.data.datasets import select_dataset
+from audxsae.nn.pretrained_models import AudioClassifier
+from audxsae.data.datasets import select_dataset
 
 import torch
 import numpy as np

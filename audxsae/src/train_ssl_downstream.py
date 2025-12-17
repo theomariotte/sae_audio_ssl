@@ -4,9 +4,9 @@ import os
 import tqdm
 import time
 
-from audIBle.data.datasets import select_dataset
-from audIBle.nn.pretrained_models import AudioClassifier
-from audIBle.nn.utils import count_parameters
+from audxsae.data.datasets import select_dataset
+from audxsae.nn.pretrained_models import AudioClassifier
+from audxsae.nn.utils import count_parameters
 
 from torch.utils.tensorboard import SummaryWriter
 import matplotlib.pyplot as plt

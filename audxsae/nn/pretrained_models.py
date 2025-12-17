@@ -479,9 +479,9 @@ class AudioClassifier(nn.Module):
         elif encoder_type.upper() == "HUBERT":
             model_name = "facebook/hubert-base-ls960"
             self.encoder = HuBERTEncoder(model_name=model_name, freeze_encoder=freeze)
-        elif encoder_type.upper() == "BEATS":
-            model_name = 'microsoft/BEATs_iter3_plus_AS2M_finetuned_on_AS2M_cpt2'
-            self.encoder = BEATsEncoder(model_name=model_name, freeze_encoder=freeze)
+        # elif encoder_type.upper() == "BEATS":
+        #     model_name = 'microsoft/BEATs_iter3_plus_AS2M_finetuned_on_AS2M_cpt2'
+        #     self.encoder = BEATsEncoder(model_name=model_name, freeze_encoder=freeze)
         elif encoder_type.upper() == "AST":
             model_name = "MIT/ast-finetuned-audioset-10-10-0.4593"
             self.encoder = ASTEncoder(model_name=model_name, freeze_encoder=freeze)      

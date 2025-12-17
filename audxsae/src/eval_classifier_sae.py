@@ -1,5 +1,5 @@
-from audIBle.nn.sae import SaeProbe
-from audIBle.data.datasets import select_dataset
+from audxsae.nn.sae import SaeProbe
+from audxsae.data.datasets import select_dataset
 
 import torch
 import numpy as np

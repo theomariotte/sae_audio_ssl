@@ -4,9 +4,9 @@ import os
 import tqdm
 import time
 
-from audIBle.data.datasets import select_dataset
-from audIBle.nn.utils import count_parameters
-from audIBle.nn.sae import SaeSslWrapper
+from audxsae.data.datasets import select_dataset
+from audxsae.nn.utils import count_parameters
+from audxsae.nn.sae import SaeSslWrapper
 
 from torch.utils.tensorboard import SummaryWriter
 import matplotlib.pyplot as plt
